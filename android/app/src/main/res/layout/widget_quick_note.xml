@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="4dp">
+
+    <LinearLayout
+        android:id="@+id/widget_bar"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:layout_gravity="center_vertical"
+        android:background="@drawable/bar_bg"
+        android:contentDescription="@string/widget_add"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="6dp">
+
+        <!-- Shrinks a little at 2x1 so the hint never runs into the tick. -->
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_marginEnd="6dp"
+            android:layout_weight="1"
+            android:autoSizeMaxTextSize="15sp"
+            android:autoSizeMinTextSize="12sp"
+            android:autoSizeTextType="uniform"
+            android:ellipsize="end"
+            android:gravity="center_vertical"
+            android:maxLines="1"
+            android:text="@string/widget_hint"
+            android:textColor="@color/outline"
+            android:textSize="15sp" />
+
+        <ImageView
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/tick_bg"
+            android:importantForAccessibility="no"
+            android:padding="8dp"
+            android:src="@drawable/ic_tick" />
+    </LinearLayout>
+</FrameLayout>

@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Same artwork as design/icon.svg. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="1.15" android:scaleY="1.15">
+        <path android:fillColor="#EDEDEF"
+            android:pathData="M40,32 H58 L72,46 V72 A4,4 0 0 1 68,76 H40 A4,4 0 0 1 36,72 V36 A4,4 0 0 1 40,32 Z" />
+        <path android:fillColor="#F0B44C" android:pathData="M58,32 V42 A4,4 0 0 0 62,46 H72 Z" />
+        <path android:strokeColor="#141416" android:strokeWidth="5.5"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M52,49 V62 A6,6 0 0 1 46,68 H44.5" />
+        <path android:fillColor="#141416" android:pathData="M52,37.3 a3.2,3.2 0 1,1 0,6.4 a3.2,3.2 0 1,1 0,-6.4 Z" />
+    </group>
+</vector>

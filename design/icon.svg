@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 108 108" width="108" height="108">
+  <!-- jNote icon source. Adaptive canvas 108x108; artwork stays inside the 66 unit safe circle.
+       The Android vectors in android/app/src/main/res/drawable/ic_launcher_*.xml use the same paths. -->
+  <rect width="108" height="108" fill="#141416"/>
+  <g transform="translate(54 54) scale(1.15) translate(-54 -54)">
+    <path d="M40,32 H58 L72,46 V72 A4,4 0 0 1 68,76 H40 A4,4 0 0 1 36,72 V36 A4,4 0 0 1 40,32 Z" fill="#EDEDEF"/>
+    <path d="M58,32 V42 A4,4 0 0 0 62,46 H72 Z" fill="#F0B44C"/>
+    <path d="M52,49 V62 A6,6 0 0 1 46,68 H44.5" fill="none" stroke="#141416" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="52" cy="40.5" r="3.2" fill="#141416"/>
+  </g>
+</svg>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Neutral colors for the native screens (splash, widget, quick entry), so they suit every app theme. -->
+    <color name="surface">#0E0E10</color>
+    <color name="surface_light">#F7F6F2</color>
+    <color name="bar">#1C1C1F</color>
+    <color name="bar_line">#2A2A2F</color>
+    <color name="on_surface">#EDEDEF</color>
+    <color name="outline">#8C8C93</color>
+    <color name="icon_background">#141416</color>
+    <color name="scrim">#99000000</color>
+</resources>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Android 12+ system splash: app icon on the app background, removed at Flutter's first frame. -->
+    <style name="LaunchTheme" parent="@android:style/Theme.Black.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <item name="android:windowSplashScreenBackground">@color/surface</item>
+    </style>
+    <!-- Splash for the light themes; MainActivity selects it on Android 13+. -->
+    <style name="SplashLight" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowSplashScreenBackground">@color/surface_light</item>
+    </style>
+</resources>

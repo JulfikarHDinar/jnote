@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">jNote</string>
+    <string name="widget_hint">Write a note…</string>
+    <string name="widget_add">Add a note for today</string>
+    <string name="widget_description">Add a note to today in two taps</string>
+    <string name="widget_label">Note bar</string>
+    <string name="widget_small_label">Small note bar</string>
+    <string name="quick_hint">Note for today…</string>
+    <string name="save">Save note</string>
+    <string name="saved">Saved</string>
+    <string name="save_failed">Couldn\'t save the note. Please try again.</string>
+    <string name="reminder_title">jNote reminder</string>
+    <string name="snooze">Snooze 10 min</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="channel_reminders">Reminders</string>
+    <string name="channel_reminders_desc">Rings when a note reminder is due</string>
+    <string name="channel_quiet">Missed reminders</string>
+</resources>
