@@ -71,12 +71,20 @@ class _CalendarScreenState extends State<CalendarScreen> {
     }
   }
 
-  void _selectRange(DateTime first, int days) {
-    setState(
-      () => _selected.addAll([for (var i = 0; i < days; i++) dayKey(DateTime(first.year, first.month, first.day + i))]),
-    );
-    _goToMonth(_base);
+  bool _isOnly(Set<int> days) => _selected.length == days.length && _selected.containsAll(days);
+
+  /// A preset selects exactly its days, replacing the selection; tapped again, it clears them.
+  void _preset(Set<int> days) {
+    final again = _isOnly(days);
+    setState(() {
+      _selected.clear();
+      if (!again) _selected.addAll(days);
+    });
+    if (!again) _goToMonth(_base);
   }
+
+  static Set<int> _days(DateTime first, int count) =>
+      {for (var i = 0; i < count; i++) dayKey(DateTime(first.year, first.month, first.day + i))};
 
   void _stopSelecting() => setState(() {
     _selecting = false;
@@ -181,15 +189,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 Wrap(
                   spacing: 8,
                   children: [
-                    ActionChip(
-                      label: const Text('This week'),
-                      onPressed: () => _selectRange(startOfWeek(now, weekStart), 7),
-                    ),
-                    ActionChip(
-                      label: const Text('This month'),
-                      onPressed: () =>
-                          _selectRange(DateTime(now.year, now.month), DateTime(now.year, now.month + 1, 0).day),
-                    ),
+                    for (final (label, days) in [
+                      ('This week', _days(startOfWeek(now, weekStart), 7)),
+                      ('This month', _days(DateTime(now.year, now.month), DateTime(now.year, now.month + 1, 0).day)),
+                    ])
+                      ChoiceChip(
+                        label: Text(label),
+                        showCheckmark: false,
+                        selected: _isOnly(days),
+                        onSelected: (_) => _preset(days),
+                      ),
                     if (_selected.isNotEmpty)
                       ActionChip(label: const Text('Clear'), onPressed: () => setState(_selected.clear)),
                   ],

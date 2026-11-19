@@ -84,6 +84,13 @@ class NotesDb {
   static Future<Set<int>> allDays() async =>
       {for (final r in await (await _db).rawQuery('SELECT DISTINCT day FROM notes')) r['day'] as int};
 
+  /// Changes whenever a note is added, edited or deleted.
+  static Future<String> fingerprint() async => (await (await _db)
+          .rawQuery('SELECT COUNT(*) AS c, MAX(id) AS i, MAX(updated_at) AS u FROM notes'))
+      .first
+      .values
+      .join(' ');
+
   static Future<Map<String, String>> prefs() async =>
       {for (final r in await (await _db).query('prefs')) r['key'] as String: r['value'] as String};
 

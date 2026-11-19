@@ -36,7 +36,8 @@ Future<bool> ensureReminderPermissions(BuildContext context) async {
     _askedExact = true;
     if (await _explain(context, 'Ring on the exact minute?',
         'On the next screen, allow jNote under "Alarms & reminders". '
-            'Without it, Android may ring reminders up to an hour late.',
+            'Without it, Android may ring reminders up to an hour late, and stop them '
+            'ringing when you pull down the notifications.',
         'Allow')) {
       await Native.openExactSettings();
     }

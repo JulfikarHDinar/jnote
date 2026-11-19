@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'data/notes_db.dart';
+import 'logic/backup.dart';
 import 'logic/dates.dart';
 import 'logic/native.dart';
 import 'logic/settings.dart';
@@ -40,6 +41,7 @@ class _JNoteAppState extends State<JNoteApp> with WidgetsBindingObserver {
       if (day != null) _openDay(day);
       await Native.resync();
       _warnIfRemindersMuted();
+      Backup.run(); // catches up on notes added from the widget while the app was closed
     });
   }
 
@@ -72,6 +74,7 @@ class _JNoteAppState extends State<JNoteApp> with WidgetsBindingObserver {
   // Notes saved from the home-screen widget land in the same file while the app is away.
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused) Backup.run(); // writes only when backup is on and notes changed
     if (state != AppLifecycleState.resumed) return;
     NotesDb.externalChange();
     _warnIfRemindersMuted(); // notifications may have been turned off meanwhile

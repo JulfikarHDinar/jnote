@@ -14,6 +14,8 @@
     <string name="snooze">Snooze 10 min</string>
     <string name="dismiss">Dismiss</string>
     <string name="channel_reminders">Reminders</string>
-    <string name="channel_reminders_desc">Rings when a note reminder is due</string>
+    <string name="channel_reminders_desc">The sound and vibration your reminders ring with</string>
+    <string name="channel_ringing">Ringing reminder</string>
+    <string name="channel_ringing_desc">Shows a reminder while it rings</string>
     <string name="channel_quiet">Missed reminders</string>
 </resources>

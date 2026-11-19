@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 
 import '../data/note.dart';
 import '../data/notes_db.dart';
+import '../logic/backup.dart';
 import '../logic/dates.dart';
 import '../logic/export_text.dart';
 import '../logic/native.dart';
@@ -14,12 +15,14 @@ import 'reminder_permissions.dart';
 import 'widgets.dart';
 
 const _privacy =
-    'jNote works fully offline. Your notes are stored only on this phone, in the app\'s '
-    'private storage. There is no account, no ads, no analytics and no internet access, so nothing '
-    'is ever sent anywhere.\n\n'
-    'When you set up a new phone, Android can copy your notes across in a phone-to-phone transfer. '
-    'jNote never uploads them to a cloud backup.\n\n'
+    'jNote works fully offline. Your notes are stored on this phone, in the app\'s private storage. '
+    'There is no account, no ads, no analytics and no internet access, so jNote never sends anything anywhere.\n\n'
+    'Automatic backup is off unless you turn it on. Then jNote saves your notes to the one file you '
+    'choose: in a folder on this phone, or on Google Drive, where the Drive app uploads it to your account.\n\n'
+    'When you set up a new phone, Android can copy your notes across in a phone-to-phone transfer.\n\n'
     'jNote writes to the clipboard only when you tap Copy, and never reads it.';
+
+const _releases = 'https://github.com/JulfikarHDinar/jnote/releases/latest';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -32,6 +35,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool? _notifications;
   bool? _exact;
   String _version = '';
+  String? _backupUri;
+  int? _backupAt;
+  bool _backupFailed = false;
   late final AppLifecycleListener _lifecycle;
 
   @override
@@ -54,12 +60,105 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _refresh() async {
     final notifications = await Native.notificationsEnabled();
     final exact = await Native.canExact();
+    final prefs = await NotesDb.prefs();
     if (mounted) {
       setState(() {
         _notifications = notifications;
         _exact = exact;
+        _backupUri = prefs[Backup.uriKey];
+        _backupAt = int.tryParse(prefs[Backup.atKey] ?? '');
+        _backupFailed = prefs[Backup.failedKey] != null;
       });
     }
+  }
+
+  /// Asks where to keep the backup, lets the user pick the file there, and backs up at once.
+  Future<void> _startBackup() async {
+    final hasDrive = await Native.hasDrive();
+    if (!mounted) return;
+    final drive = await showDialog<bool>(
+      context: context,
+      builder: (c) => AlertDialog(
+        title: const Text('Where should the backup go?'),
+        contentPadding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: Text(
+                'Whenever your notes change, jNote saves them all to one text file there. '
+                'To restore, use Import notes and pick that file.',
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.add_to_drive),
+              title: const Text('Google Drive'),
+              subtitle: Text(
+                hasDrive
+                    ? 'On the next screen, open the menu and choose Drive'
+                    : 'Install the Google Drive app and sign in first',
+              ),
+              enabled: hasDrive,
+              onTap: () => Navigator.pop(c, true),
+            ),
+            ListTile(
+              leading: const Icon(Icons.phone_android),
+              title: const Text('This phone'),
+              subtitle: const Text('A folder you choose. Works offline.'),
+              onTap: () => Navigator.pop(c, false),
+            ),
+          ],
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(c), child: const Text('Cancel'))],
+      ),
+    );
+    if (drive == null) return;
+    final String? uri;
+    try {
+      uri = await Native.pickBackup(drive: drive, name: Backup.fileName);
+    } on PlatformException {
+      if (mounted) showSnack(ScaffoldMessenger.of(context), "Couldn't use that file. Please choose another place.");
+      return;
+    }
+    if (uri == null) return;
+    await Backup.start(uri);
+    await _backupNow();
+  }
+
+  Future<void> _stopBackup() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Backup.stop();
+    await _refresh();
+    showSnack(messenger, 'Automatic backup is off. The last backup file stays where it is.');
+  }
+
+  Future<void> _backupNow() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final written = await Backup.run(force: true);
+    await _refresh();
+    showSnack(
+      messenger,
+      switch (written) {
+        null => "Couldn't write the backup file. Turn backup off and on to choose it again.",
+        0 => 'Backup is on. It starts with your first note.',
+        _ => 'Backed up ${_notes(written)}.',
+      },
+    );
+  }
+
+  String _backupStatus() {
+    if (_backupFailed) return "Last backup failed. If it keeps failing, turn backup off and on.";
+    final at = _backupAt;
+    if (at == null) return 'Not backed up yet';
+    final t = DateTime.fromMillisecondsSinceEpoch(at);
+    return 'Last backup: ${relativeDay(dayKey(t)) ?? dayLabel(t)}, ${TimeOfDay.fromDateTime(t).format(context)}';
+  }
+
+  Future<void> _checkForUpdates() async {
+    if (await Native.openUrl(_releases) || !mounted) return;
+    showSnack(ScaffoldMessenger.of(context), 'No browser found. Visit $_releases');
   }
 
   /// Off: show Android's Allow prompt (or the right Settings page). On: let the user manage them.
@@ -328,11 +427,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 subtitle: const Text('Choose a date range; you can undo right after'),
                 onTap: _deleteRange,
               ),
+              const _Section('Backup'),
+              SwitchListTile(
+                secondary: const Icon(Icons.backup_outlined),
+                title: const Text('Automatic backup'),
+                subtitle: Text(
+                  _backupUri == null
+                      ? 'Off. Your notes stay only on this phone.'
+                      : 'On · ${Backup.place(_backupUri!)}. Saves when you leave the app after changes.',
+                ),
+                value: _backupUri != null,
+                onChanged: (on) => on ? _startBackup() : _stopBackup(),
+              ),
+              if (_backupUri != null)
+                ListTile(
+                  leading: Icon(_backupFailed ? Icons.sync_problem : Icons.sync),
+                  title: const Text('Back up now'),
+                  subtitle: Text(_backupStatus()),
+                  onTap: _backupNow,
+                ),
               const _Section('About'),
               ListTile(
                 leading: const Icon(Icons.lock_outline),
                 title: const Text('Privacy'),
-                subtitle: const Text('Offline. No account, ads or tracking.'),
+                subtitle: const Text('No account, ads, tracking or internet access'),
                 onTap: () => showDialog<void>(
                   context: context,
                   builder: (c) => AlertDialog(
@@ -347,7 +465,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 title: const Text('Open-source licenses'),
                 onTap: () => showLicensePage(context: context, applicationName: 'jNote', applicationVersion: _version),
               ),
-              ListTile(leading: const Icon(Icons.info_outline), title: const Text('Version'), subtitle: Text(_version)),
+              ListTile(
+                leading: const Icon(Icons.system_update_outlined),
+                title: const Text('Check for updates'),
+                subtitle: Text('You have version $_version. Opens the latest release in your browser.'),
+                trailing: const Icon(Icons.open_in_new, size: 20),
+                onTap: _checkForUpdates,
+              ),
             ],
           ),
         ),

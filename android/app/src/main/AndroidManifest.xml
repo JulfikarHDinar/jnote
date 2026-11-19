@@ -3,6 +3,10 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- RingService: a reminder rings until it is answered, even with the notification shade open. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
+    <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
         android:label="@string/app_name"
@@ -68,6 +72,13 @@
 
         <receiver android:name=".ReminderReceiver" android:exported="false" />
 
+        <!-- Runs only while a reminder rings. systemExempted is the type Android documents for
+             alarms kept ringing by apps that hold the exact-alarm permission. -->
+        <service
+            android:name=".RingService"
+            android:exported="false"
+            android:foregroundServiceType="systemExempted" />
+
         <!-- Enabled only while a reminder is pending (see Reminders.setBootReceiver). -->
         <receiver
             android:name=".BootReceiver"
@@ -103,6 +114,8 @@
 
          In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
     <queries>
+        <!-- Only to tell whether Google Drive is installed, for Automatic backup. -->
+        <package android:name="com.google.android.apps.docs" />
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>

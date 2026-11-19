@@ -53,6 +53,23 @@ class Native {
   static Future<bool> saveText(String name, String text) async =>
       await _ch.invokeMethod<bool>('saveText', {'name': name, 'text': text}) ?? false;
 
+  /// Opens [url] in the browser. False when there is no browser.
+  static Future<bool> openUrl(String url) async => await _ch.invokeMethod<bool>('openUrl', {'url': url}) ?? false;
+
+  static Future<bool> hasDrive() async => await _ch.invokeMethod<bool>('hasDrive') ?? false;
+
+  /// Android's save screen for the backup file, opening in Documents unless [drive]:
+  /// the file's content URI, which the app may keep writing, or null when cancelled.
+  static Future<String?> pickBackup({required bool drive, required String name}) =>
+      _ch.invokeMethod<String>('pickBackup', {'drive': drive, 'name': name});
+
+  /// Replaces the backup file's content. Throws a PlatformException when it can't.
+  static Future<void> writeBackup(String uri, String text) =>
+      _ch.invokeMethod('writeBackup', {'uri': uri, 'text': text});
+
+  /// Gives up the right to write the backup file.
+  static Future<void> releaseBackup(String uri) => _ch.invokeMethod('releaseBackup', {'uri': uri});
+
   /// The day to open when the app was started from a reminder notification.
   static Future<int?> takeLaunchDay() => _ch.invokeMethod<int>('takeLaunchDay');
 

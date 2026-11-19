@@ -31,11 +31,12 @@
 - **Two-tap notes** from a home-screen bar (3×1 or 2×1): type, tap ✓, done.
 - **Daily timeline:** notes with their times and bullets. Tap to edit, swipe to delete, with Undo.
 - **Calendar:** dots mark days with notes. Open any day to read or add notes.
-- **Reminders that ring,** with Snooze 10 min and Dismiss. They survive restarts.
+- **Reminders that ring** until you answer them, with Snooze 10 min and Dismiss. They survive restarts.
 - **Export** any days as plain text: copy, share or save as a file.
 - **Import** a saved file on another phone. Notes already there are skipped.
+- **Automatic backup,** if you want it: to Google Drive or a folder on your phone.
 - **Six themes:** three dark, three light.
-- **Private and light:** fully offline, no account, no ads, no tracking. Nothing runs in the background unless a reminder is set.
+- **Private and light:** offline, no account, no ads, no tracking. Nothing runs in the background unless a reminder is set.
 
 ## Install
 
@@ -43,12 +44,13 @@
 2. Open the file. If Android asks, allow your browser or Files app to install unknown apps.
 3. Tap **Install**. jNote needs Android 8.0 or newer.
 
-**Updating:** install the newer APK over the old one. Your notes stay.
+**Updating:** install the newer APK over the old one. Your notes stay. **Settings > Check for updates** opens the latest release.
 
 ## How it works
 
 - **Notes belong to days.** jNote opens on today. The widget always writes to today; the calendar opens any other day.
-- **Reminders** use Android's alarm service. jNote asks for notification permission only when you set your first reminder.
+- **Reminders** use Android's alarm service. jNote asks for notification permission only when you set your first reminder. While a reminder rings, a small foreground service plays the sound, so it keeps ringing until you answer it.
+- **Automatic backup** is off until you turn it on. When your notes change, leaving the app writes them all to one text file on Google Drive or in a folder you pick. Import notes restores it.
 - **One text format** for export and import, so notes move between phones exactly:
 
   ```
@@ -67,12 +69,13 @@ More detail is in the [user guide](docs/GUIDE.md).
 | Notifications | Shows your reminders. Asked when you set the first one. |
 | Alarms & reminders | Rings on the exact minute. Without it, Android may ring a reminder up to an hour late. |
 | Run at startup | Restores pending reminders after a restart. Off while no reminder is pending. |
+| Foreground service, vibrate | Keeps a reminder ringing and vibrating until you answer it, even with the notifications pulled down. Runs only while a reminder rings. |
 
-jNote has no internet permission.
+jNote has no internet permission. Backup to Google Drive goes through the Drive app.
 
 ## Privacy
 
-Your notes stay on your phone. They leave it only when you copy, share or save them yourself. Read the [privacy policy](PRIVACY_POLICY.md).
+Your notes stay on your phone. They leave it only when you copy, share or save them yourself, or turn on backup to Google Drive. Read the [privacy policy](PRIVACY_POLICY.md).
 
 ## Build from source
 

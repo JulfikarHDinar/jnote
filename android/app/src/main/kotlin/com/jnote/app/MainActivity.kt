@@ -2,6 +2,7 @@ package com.jnote.app
 
 import android.Manifest
 import android.app.NotificationManager
+import android.content.ActivityNotFoundException
 import android.appwidget.AppWidgetManager
 import android.content.ClipData
 import android.content.ComponentName
@@ -9,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
+import android.provider.DocumentsContract
 import android.provider.Settings
 import androidx.core.content.FileProvider
 import io.flutter.embedding.android.FlutterActivity
@@ -29,6 +31,7 @@ class MainActivity : FlutterActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         launchDay = dayOf(intent)
+        stopReminder(intent)
         channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "jnote/native").apply {
             setMethodCallHandler { call, result ->
                 val id = call.argument<Number>("id")?.toInt() ?: 0
@@ -104,6 +107,51 @@ class MainActivity : FlutterActivity() {
                         call.argument<String>("text")
                     )
                     "takeLaunchDay" -> { result.success(launchDay); launchDay = null }
+                    "openUrl" -> result.success(
+                        try {
+                            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(call.argument<String>("url"))).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                            true
+                        } catch (e: ActivityNotFoundException) {
+                            false
+                        }
+                    )
+                    "hasDrive" -> result.success(
+                        try { packageManager.getPackageInfo(DRIVE, 0); true } catch (e: PackageManager.NameNotFoundException) { false }
+                    )
+                    // The backup file: Android's save screen, then a lasting right to rewrite that one file.
+                    "pickBackup" -> pickFile(
+                        result,
+                        Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("text/plain")
+                            .putExtra(Intent.EXTRA_TITLE, call.argument<String>("name"))
+                            .putExtra("android.provider.extra.SHOW_ADVANCED", true) // lists the phone's storage on older Androids
+                            .apply {
+                                if (call.argument<Boolean>("drive") != true) putExtra(
+                                    DocumentsContract.EXTRA_INITIAL_URI,
+                                    DocumentsContract.buildDocumentUri("com.android.externalstorage.documents", "primary:Documents")
+                                )
+                            },
+                        REQUEST_BACKUP
+                    )
+                    "writeBackup" -> {
+                        val uri = Uri.parse(call.argument<String>("uri"))
+                        val text = call.argument<String>("text") ?: ""
+                        Thread {
+                            try {
+                                writeText(uri, text)
+                                runOnUiThread { result.success(true) }
+                            } catch (e: Exception) {
+                                runOnUiThread { result.error("io", e.message, null) }
+                            }
+                        }.start()
+                    }
+                    "releaseBackup" -> {
+                        try {
+                            contentResolver.releasePersistableUriPermission(Uri.parse(call.argument<String>("uri")), RW)
+                        } catch (e: Exception) {
+                            // already gone
+                        }
+                        result.success(null)
+                    }
                     else -> result.notImplemented()
                 }
             }
@@ -119,16 +167,26 @@ class MainActivity : FlutterActivity() {
     // A reminder notification tapped while the app is already open.
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
+        stopReminder(intent)
         dayOf(intent)?.let { channel?.invokeMethod("openDay", it) }
     }
 
     private fun dayOf(intent: Intent?): Int? = intent?.getIntExtra(EXTRA_DAY, 0)?.takeIf { it > 0 }
 
+    // Opening a reminder answers it: the ringing stops and the notification goes.
+    private fun stopReminder(intent: Intent?) {
+        val id = intent?.getIntExtra(EXTRA_REMINDER, 0) ?: 0
+        if (id <= 0) return
+        intent?.removeExtra(EXTRA_REMINDER) // only once, not again when the activity is recreated
+        Reminders.stopRinging(this, id)
+        remindersChanged()
+    }
+
     private fun reminderChannelSettings(): Intent {
         Reminders.createChannels(this) // the category must exist to open its page
         return Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
             .putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
-            .putExtra(Settings.EXTRA_CHANNEL_ID, Reminders.RINGING)
+            .putExtra(Settings.EXTRA_CHANNEL_ID, Reminders.SOUND)
     }
 
     // Large exports are shared as a file: an Intent can only carry about 1 MB.
@@ -189,6 +247,18 @@ class MainActivity : FlutterActivity() {
                 exactResult?.success(null)
                 exactResult = null
             }
+            REQUEST_BACKUP -> {
+                val result = fileResult ?: return
+                fileResult = null
+                val uri = data?.data
+                if (resultCode != RESULT_OK || uri == null) return result.success(null)
+                try {
+                    contentResolver.takePersistableUriPermission(uri, RW)
+                    result.success(uri.toString())
+                } catch (e: Exception) {
+                    result.error("io", e.message, null)
+                }
+            }
             REQUEST_OPEN, REQUEST_SAVE -> {
                 val result = fileResult ?: return
                 val text = textToSave
@@ -200,8 +270,7 @@ class MainActivity : FlutterActivity() {
                 Thread {
                     try {
                         val value: Any = if (requestCode == REQUEST_OPEN) readText(uri) else {
-                            (contentResolver.openOutputStream(uri) ?: throw IOException("no stream"))
-                                .use { it.write((text ?: "").toByteArray()) }
+                            writeText(uri, text ?: "")
                             true
                         }
                         runOnUiThread { result.success(value) }
@@ -211,6 +280,16 @@ class MainActivity : FlutterActivity() {
                 }.start()
             }
         }
+    }
+
+    // "wt" replaces the whole file (plain "w" may leave the old end behind); some providers, like Drive, only take "w".
+    private fun writeText(uri: Uri, text: String) {
+        val out = try {
+            contentResolver.openOutputStream(uri, "wt")
+        } catch (e: Exception) {
+            null
+        } ?: contentResolver.openOutputStream(uri, "w") ?: throw IOException("no stream")
+        out.use { it.write(text.toByteArray()) }
     }
 
     // Reads at most MAX_TEXT_BYTES, so a wrong pick can't exhaust memory.
@@ -230,10 +309,14 @@ class MainActivity : FlutterActivity() {
 
     companion object {
         const val EXTRA_DAY = "day"
+        const val EXTRA_REMINDER = "reminder"
         private const val REQUEST_NOTIFICATIONS = 7
         private const val REQUEST_EXACT = 8
         private const val REQUEST_OPEN = 9
         private const val REQUEST_SAVE = 10
+        private const val REQUEST_BACKUP = 11
+        private const val RW = Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+        private const val DRIVE = "com.google.android.apps.docs"
         private const val MAX_TEXT_BYTES = 20 * 1024 * 1024
         private const val TOO_LARGE = "too_large"
 

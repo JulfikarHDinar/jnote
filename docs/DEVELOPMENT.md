@@ -36,14 +36,15 @@ lib/
   main.dart                  app start, theme, opening a day from a reminder
   theme.dart                 the six themes (three dark, three light) and Material 3 setup
   data/                      Note model, SQLite access (notes + settings tables)
-  logic/                     dates, bullets, plain-text export, settings, native channel
+  logic/                     dates, bullets, plain-text export, backup, settings, native channel
   ui/                        day (home), editor, calendar, export, settings screens
 android/app/src/main/kotlin/com/jnote/app/
-  MainActivity.kt            channel for reminders, permissions, share, widget pinning
+  MainActivity.kt            channel for reminders, permissions, share, files, widget pinning
   NoteStore.kt               the same jnote.db opened from Kotlin (keep the schema in sync)
   QuickEntryActivity.kt      the small input card the widgets open
   QuickNoteWidget.kt         the home-screen widget, in two sizes (3x1 and 2x1)
-  Reminders.kt               alarms, the ringing notification, snooze, reboot handling
+  Reminders.kt               alarms, reminder notifications, snooze, reboot handling
+  RingService.kt             plays a ringing reminder's sound and vibration until it is answered
 design/                      icon source (icon.svg) and the 512 px Play Store icon
 integration_test/            on-device regression and performance tests
 ```
@@ -118,7 +119,8 @@ Verified on the final build (Android 14 emulator):
   - The notification prompt appears from the editor and from Settings.
   - The exact-timing page returns to the reminder, which is then set exactly.
   - A reminder rings on the minute.
-  - Snooze, Dismiss, the one-minute auto-silence, and tapping to open the day all work.
+  - Snooze, Dismiss, swiping away, the 10-minute auto-silence, and tapping to open the day all work.
+  - The sound keeps playing with the notification shade open (checked with `dumpsys audio`).
   - Reminders survive an app update and a reboot.
   - Turning off exact timing re-sets reminders inexactly on the next app start.
 - **Widgets:** both sizes can be added from Settings, and both save notes to today.
@@ -148,6 +150,7 @@ Why "No" is correct:
 - Google defines "collect" as sending data off the device. jNote never does that. Data processed only on the device is out of scope.
 - Share is a user-initiated transfer to an app the user picks. Google's rules exempt that from "sharing".
 - Cloud backup is switched off for jNote's data.
+- Automatic backup writes to a file the user picks with Android's save screen. jNote never receives that data, and Google Drive uploads it to the user's own account.
 
 ### Play Console: other declarations
 
@@ -157,7 +160,7 @@ Why "No" is correct:
 - **Sensitive permissions:** no declaration needed.
   - `SCHEDULE_EXACT_ALARM` is user-granted, and Play does not restrict it.
   - jNote does not use `USE_EXACT_ALARM` or the full-screen intent permission.
-- **Foreground services:** none.
+- **Foreground services:** one, `RingService`, type `systemExempted`. It keeps a reminder ringing after an exact alarm, the documented use for apps that hold `SCHEDULE_EXACT_ALARM`. It runs only while a reminder rings.
 - **Category suggestion:** Productivity.
 
 You must host this policy at a public URL (for example GitHub Pages or Google Sites) and enter that URL in Play Console under App content > Privacy policy.
